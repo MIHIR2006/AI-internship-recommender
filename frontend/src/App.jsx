@@ -15,31 +15,54 @@ import Dashborad from "./pages/Dashborad";
 import AddJobs from "./pages/AddJobs";
 import ManageJobs from "./pages/ManageJobs";
 import ViewApplications from "./pages/ViewApplications";
+import UserInfoForm from "./components/UserInfoForm";
 import { AppContext } from "./context/AppContext";
 
 const App = () => {
-  const { companyToken } = useContext(AppContext);
+  const { 
+    companyToken, 
+    showWelcomePopup, 
+    setShowWelcomePopup, 
+    setUserInfo 
+  } = useContext(AppContext);
+
+  const handleUserInfoSubmit = (userData) => {
+    setUserInfo(userData);
+  };
+
+  const handleClosePopup = () => {
+    setShowWelcomePopup(false);
+  };
 
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/all-jobs/:category" element={<AllJobs />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/apply-job/:id" element={<ApplyJob />} />
-        <Route path="/applications" element={<Applications />} />
-        <Route path="/candidate-login" element={<CandidatesLogin />} />
-        <Route path="/candidate-signup" element={<CandidatesSignup />} />
-        <Route path="/recruiter-login" element={<RecruiterLogin />} />
-        <Route path="/recruiter-signup" element={<RecruiterSignup />} />]
-        <Route path="/dashboard" element={<Dashborad />}>
-          <Route path="add-job" element={<AddJobs />} />
-          <Route path="manage-jobs" element={<ManageJobs />} />
-          <Route path="view-applications" element={<ViewApplications />} />
-        </Route>
-      </Routes>
-    </AppLayout>
+    <>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/all-jobs/:category" element={<AllJobs />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/apply-job/:id" element={<ApplyJob />} />
+          <Route path="/applications" element={<Applications />} />
+          <Route path="/candidate-login" element={<CandidatesLogin />} />
+          <Route path="/candidate-signup" element={<CandidatesSignup />} />
+          <Route path="/recruiter-login" element={<RecruiterLogin />} />
+          <Route path="/recruiter-signup" element={<RecruiterSignup />} />
+          <Route path="/dashboard" element={<Dashborad />}>
+            <Route path="add-job" element={<AddJobs />} />
+            <Route path="manage-jobs" element={<ManageJobs />} />
+            <Route path="view-applications" element={<ViewApplications />} />
+          </Route>
+        </Routes>
+      </AppLayout>
+
+      {/* Welcome Popup */}
+      <UserInfoForm
+        isOpen={showWelcomePopup}
+        onClose={handleClosePopup}
+        onSubmit={handleUserInfoSubmit}
+      />
+    </>
   );
 };
 
