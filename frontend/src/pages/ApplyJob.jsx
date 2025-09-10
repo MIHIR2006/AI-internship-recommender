@@ -1,10 +1,9 @@
-import axios from "axios";
 import kConverter from "k-convert";
 import { Clock, MapPin, User } from "lucide-react";
 import moment from "moment";
 import React, { useContext, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { assets } from "../assets/assets";
 import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
@@ -35,29 +34,26 @@ const ApplyJob = () => {
         navigate("/candidate-login");
         return toast.error("Please login to apply");
       }
-      if (!userData?.resume) {
+      if (!userData?.has_resume_summary) {
         navigate("/applications");
-        return toast.error("Please upload your resume");
+        return toast.error("Please upload your resume first");
       }
 
-      const { data } = await axios.post(
-        `${backendUrl}/user/apply-job`,
-        { jobId },
-        {
-          headers: {
-            token: userToken,
-          },
-        }
-      );
-
-      if (data.success) {
-        toast.success(data.message);
-        setAlreadyApplied(true);
-      } else {
-        toast.error(data.message);
-      }
+      // For now, we'll store applications in localStorage since FastAPI doesn't have this endpoint yet
+      const existingApplications = JSON.parse(localStorage.getItem("userApplications") || "[]");
+      const newApplication = {
+        jobId,
+        appliedAt: new Date().toISOString(),
+        status: "Applied"
+      };
+      
+      existingApplications.push(newApplication);
+      localStorage.setItem("userApplications", JSON.stringify(existingApplications));
+      
+      toast.success("Application submitted successfully!");
+      setAlreadyApplied(true);
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 

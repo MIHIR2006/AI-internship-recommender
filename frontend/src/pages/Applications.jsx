@@ -1,13 +1,13 @@
-import React, { useContext, useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { assets } from "../assets/assets";
-import moment from "moment";
-import { AppContext } from "../context/AppContext";
-import Loader from "../components/Loader";
-import { LoaderCircle } from "lucide-react";
 import axios from "axios";
+import { LoaderCircle } from "lucide-react";
+import moment from "moment";
+import React, { useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { assets } from "../assets/assets";
+import Footer from "../components/Footer";
+import Loader from "../components/Loader";
+import Navbar from "../components/Navbar";
+import { AppContext } from "../context/AppContext";
 
 const Applications = () => {
   const {
@@ -33,29 +33,29 @@ const Applications = () => {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("resume", resumeFile);
+      formData.append("file", resumeFile);
 
       const { data } = await axios.post(
-        `${backendUrl}/user/upload-resume`,
+        `${backendUrl}/student/analyze_resume/`,
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
-            token: userToken,
+            Authorization: `Bearer ${userToken}`,
           },
         }
       );
 
-      if (data.success) {
-        toast.success(data.message);
+      if (data.resume_summary) {
+        toast.success("Resume uploaded and analyzed successfully!");
         setIsEdit(false);
         fetchUserData();
       } else {
-        toast.error(data.message);
+        toast.error("Resume upload failed");
       }
     } catch (error) {
       console.error("Resume upload error:", error);
-      toast.error(error?.response?.data?.message || "Resume upload failed");
+      toast.error(error?.response?.data?.detail || "Resume upload failed");
     } finally {
       setLoading(false);
     }

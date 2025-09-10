@@ -1,14 +1,14 @@
+import axios from "axios";
+import { LoaderCircle, Lock, Mail } from "lucide-react";
 import React, { useContext, useState } from "react";
+import toast from "react-hot-toast";
+import { Link, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
-import { Mail, Lock, LoaderCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
-import axios from "axios";
 import { AppContext } from "../context/AppContext";
-import toast from "react-hot-toast";
 
 const CandidatesLogin = () => {
-  const [email, setEmail] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,25 +19,44 @@ const CandidatesLogin = () => {
 
   const userLoginHandler = async (e) => {
     e.preventDefault();
-    setLoading(true); //
+    setLoading(true);
     try {
-      const { data } = await axios.post(`${backendUrl}/user/login-user`, {
-        email,
+      const { data } = await axios.post(`${backendUrl}/student/login`, {
+        student_id: studentId,
         password,
       });
 
-      if (data.success) {
-        setUserToken(data.token);
-        setUserData(data.userData);
+      console.log("Login response:", data); // Debug log
+
+      if (data.access_token) {
+        // Store token and user data
+        localStorage.setItem("userToken", data.access_token);
+        localStorage.setItem("userData", JSON.stringify({
+          student_id: data.user_id,
+          user_type: data.user_type
+        }));
+        
+        // Update context
+        setUserToken(data.access_token);
+        setUserData({
+          student_id: data.user_id,
+          user_type: data.user_type
+        });
         setIsLogin(true);
-        localStorage.setItem("userToken", data.token);
-        toast.success(data.message);
-        navigate("/");
+        
+        console.log("Login successful, navigating to home...");
+        toast.success("Login successful!");
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate("/");
+        }, 100);
       } else {
-        toast.error(data.message || "Login failed");
+        toast.error("Login failed - no access token received");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      console.error("Login error:", error); // Debug log
+      toast.error(error?.response?.data?.detail || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -62,11 +81,11 @@ const CandidatesLogin = () => {
               <div className="border border-gray-300 rounded flex items-center p-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
                 <Mail className="h-5 w-5 text-gray-400 mr-2" />
                 <input
-                  type="email"
-                  placeholder="Email id"
+                  type="text"
+                  placeholder="Student ID"
                   className="w-full outline-none text-sm"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
                   required
                 />
               </div>

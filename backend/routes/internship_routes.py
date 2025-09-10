@@ -55,6 +55,13 @@ async def company_login(login_data: CompanyLogin, db: Session = Depends(get_db))
         user_id=company.company_id
     )
 
+@router.get("/internships")
+def get_all_internships():
+    """Get all available internships."""
+    from db.crud import get_all_internships
+    internships = get_all_internships()
+    return {"internships": internships}
+
 @router.post("/add_internship/")
 def create_internship(internship: InternshipCreate):
     new_internship = add_internship(

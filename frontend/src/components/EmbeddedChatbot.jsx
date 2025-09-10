@@ -1,9 +1,13 @@
+import axios from "axios";
 import { motion } from "framer-motion";
 import { Bot, Loader2, Send, User } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { AppContext } from "../context/AppContext";
 import { SlideUp } from "../utils/Animation";
 
 const EmbeddedChatbot = () => {
+  const { backendUrl, userToken, userData } = useContext(AppContext);
+  
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -76,77 +80,55 @@ const EmbeddedChatbot = () => {
     }
   ];
 
-  // AI Response Generator
-  const generateBotResponse = (userMessage) => {
-    const message = userMessage.toLowerCase();
-    
-    // Tech/Programming queries
-    if (message.includes('programming') || message.includes('tech') || message.includes('software') || message.includes('developer') || message.includes('coding')) {
-      const techJobs = jobDatabase.filter(job => job.category === 'tech');
+  // AI Response Generator using FastAPI
+  const generateBotResponse = async (userMessage) => {
+    if (!userToken || !userData) {
       return {
-        content: "Great choice! Programming careers are in high demand with excellent growth potential. Here are some exciting software engineering opportunities:\n\n**🚀 Top Programming Jobs:**\n• **Senior Software Engineer** at TechFlow Inc. - $120k-$150k\n• **Full Stack Developer** positions available\n• **Remote opportunities** in tech companies\n\n**💡 Skills in Demand:**\n• JavaScript, React, Node.js, Python\n• Cloud platforms (AWS, Azure)\n• DevOps and CI/CD practices\n\nWould you like me to show you specific job details or help with skill development?",
-        jobs: techJobs
-      };
-    }
-    
-    // Data Science queries
-    if (message.includes('data science') || message.includes('data') || message.includes('analytics') || message.includes('machine learning')) {
-      const dataJobs = jobDatabase.filter(job => job.category === 'data');
-      return {
-        content: "Data Science is one of the most exciting fields right now! Here are some fantastic opportunities:\n\n**📊 Data Science Roles:**\n• **Data Scientist** at DataCorp Analytics - $110k-$140k\n• **Business Intelligence Analyst** positions\n• **Machine Learning Engineer** roles\n\n**🔧 Key Skills:**\n• Python, R, SQL\n• Machine Learning frameworks\n• Data visualization tools\n• Statistical analysis\n\nInterested in any specific data science role?",
-        jobs: dataJobs
-      };
-    }
-
-    // Marketing queries
-    if (message.includes('marketing') || message.includes('social media') || message.includes('content') || message.includes('brand')) {
-      const marketingJobs = jobDatabase.filter(job => job.category === 'marketing');
-      return {
-        content: "Marketing is a dynamic and creative field! Here are some excellent opportunities:\n\n**📈 Marketing Positions:**\n• **Digital Marketing Manager** at BrandBoost Agency - $80k-$100k\n• **Content Marketing Specialist** roles\n• **Social Media Manager** positions\n\n**🎯 Essential Skills:**\n• Google Analytics, SEO, SEM\n• Content creation and strategy\n• Social media platforms\n• Data-driven marketing\n\nWant to explore specific marketing roles?",
-        jobs: marketingJobs
-      };
-    }
-
-    // Cybersecurity queries
-    if (message.includes('cybersecurity') || message.includes('security') || message.includes('cyber') || message.includes('hacking')) {
-      const securityJobs = jobDatabase.filter(job => job.category === 'cybersecurity');
-      return {
-        content: "Cybersecurity is a critical and growing field! Here are some important opportunities:\n\n**🔒 Security Roles:**\n• **Cybersecurity Analyst** at SecureTech Solutions - $95k-$125k\n• **Security Engineer** positions\n• **Incident Response Specialist** roles\n\n**🛡️ Key Skills:**\n• Network security, threat analysis\n• Security tools and frameworks\n• Compliance and risk management\n• Incident response procedures\n\nInterested in cybersecurity career paths?",
-        jobs: securityJobs
-      };
-    }
-
-    // Design queries
-    if (message.includes('design') || message.includes('ux') || message.includes('ui') || message.includes('creative')) {
-      const designJobs = jobDatabase.filter(job => job.category === 'design');
-      return {
-        content: "Design careers are perfect for creative problem-solvers! Here are some opportunities:\n\n**🎨 Design Positions:**\n• **UX/UI Designer** at DesignStudio Pro - $90k-$120k\n• **Product Designer** roles\n• **Graphic Designer** positions\n\n**✨ Essential Skills:**\n• Figma, Adobe Creative Suite\n• User research and testing\n• Prototyping and wireframing\n• Design systems and accessibility\n\nWant to explore design career options?",
-        jobs: designJobs
-      };
-    }
-
-    // Remote work queries
-    if (message.includes('remote') || message.includes('work from home') || message.includes('virtual')) {
-      const remoteJobs = jobDatabase.filter(job => job.location === 'Remote');
-      return {
-        content: "Remote work offers flexibility and access to opportunities worldwide! Here are some excellent remote positions:\n\n**🏠 Remote Opportunities:**\n• **UX/UI Designer** - Remote position\n• **Software Engineer** - Remote available\n• **Digital Marketing** - Remote options\n\n**💡 Remote Work Tips:**\n• Set up a dedicated workspace\n• Maintain regular communication\n• Use collaboration tools effectively\n• Establish work-life balance\n\nLooking for specific remote roles?",
-        jobs: remoteJobs
-      };
-    }
-
-    // Career advice queries
-    if (message.includes('career') || message.includes('advice') || message.includes('resume') || message.includes('interview')) {
-      return {
-        content: "I'd love to help with your career development! Here's my comprehensive guide:\n\n**📝 Resume & Application:**\n• Tailor your resume for each position\n• Highlight quantifiable achievements\n• Use keywords from job descriptions\n• Include a compelling summary\n\n**🎯 Interview Success:**\n• Research the company thoroughly\n• Practice the STAR method\n• Prepare thoughtful questions\n• Follow up professionally\n\n**🚀 Career Growth:**\n• Set clear goals and milestones\n• Seek feedback regularly\n• Build your professional network\n• Stay updated with industry trends\n\nWhat specific area would you like to focus on?",
+        content: "Please login to use the AI assistant. I can help you with career guidance and internship recommendations once you're logged in!",
         jobs: []
       };
     }
 
-    // Default response
-    return {
-      content: "I'm here to help you find the perfect career opportunity! I can assist you with:\n\n**🔍 Job Discovery:**\n• Programming & Tech roles\n• Data Science positions\n• Marketing opportunities\n• Design careers\n• Cybersecurity jobs\n\n**💼 Career Guidance:**\n• Resume optimization\n• Interview preparation\n• Skill development\n• Career planning\n\nWhat would you like to explore today?",
-      jobs: jobDatabase.slice(0, 2)
-    };
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/student/chat`,
+        null,
+        {
+          params: { question: userMessage },
+          headers: { Authorization: `Bearer ${userToken}` }
+        }
+      );
+
+      if (data.intent === "recommend_internships" && data.recommendations) {
+        return {
+          content: data.recommendations.map(rec => 
+            `**${rec.title}**\n${rec.description}\n📍 ${rec.location}\n💰 ${rec.stipend}\n⏱️ ${rec.duration}\n\n**Skills Required:** ${rec.skills}\n**Match Score:** ${rec.match_percentage}%`
+          ).join('\n\n---\n\n'),
+          jobs: data.recommendations
+        };
+      } else if (data.intent === "suggest_skills" && data.advice) {
+        return {
+          content: data.advice,
+          jobs: []
+        };
+      } else if (data.answer) {
+        return {
+          content: data.answer,
+          jobs: []
+        };
+      } else {
+        return {
+          content: "I'm here to help you with career guidance and internship recommendations. Please ask me about specific roles, skills, or career advice!",
+          jobs: []
+        };
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      return {
+        content: "I'm having trouble connecting to the AI service. Please try again later or contact support if the issue persists.",
+        jobs: []
+      };
+    }
   };
 
   const handleSendMessage = async (messageText = null) => {
@@ -165,9 +147,8 @@ const EmbeddedChatbot = () => {
     setInputMessage("");
     setIsTyping(true);
 
-    // Simulate realistic AI response delay
-    setTimeout(() => {
-      const botResponse = generateBotResponse(message);
+    try {
+      const botResponse = await generateBotResponse(message);
       const botMessage = {
         id: Date.now() + 1,
         type: 'bot',
@@ -177,8 +158,19 @@ const EmbeddedChatbot = () => {
       };
 
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error generating response:", error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: "I'm sorry, I encountered an error. Please try again later.",
+        timestamp: new Date(),
+        jobs: []
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1200 + Math.random() * 800);
+    }
   };
 
   // Auto scroll to bottom of chat
@@ -194,18 +186,25 @@ const EmbeddedChatbot = () => {
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
           <h4 className="font-semibold text-gray-800 text-sm mb-1">{job.title}</h4>
-          <p className="text-blue-600 text-xs font-medium">{job.company}</p>
+          <p className="text-blue-600 text-xs font-medium">{job.location}</p>
         </div>
-        <span className="text-xs text-gray-500">{job.salary}</span>
+        <span className="text-xs text-gray-500">{job.stipend}</span>
       </div>
       <p className="text-gray-600 text-xs mb-2">{job.description}</p>
       <div className="flex flex-wrap gap-1">
-        {job.skills.slice(0, 3).map((skill, index) => (
+        {job.skills && job.skills.split(',').slice(0, 3).map((skill, index) => (
           <span key={index} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-            {skill}
+            {skill.trim()}
           </span>
         ))}
       </div>
+      {job.match_percentage && (
+        <div className="mt-2">
+          <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+            Match: {job.match_percentage}%
+          </span>
+        </div>
+      )}
     </div>
   );
 

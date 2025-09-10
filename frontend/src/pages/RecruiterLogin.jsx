@@ -1,42 +1,61 @@
-import { Lock, Mail, LoaderCircle } from "lucide-react";
+import axios from "axios";
+import { LoaderCircle, Lock, Mail } from "lucide-react";
 import React, { useContext, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { AppContext } from "../context/AppContext";
-import toast from "react-hot-toast";
-import axios from "axios";
 
 const RecruiterLogin = () => {
-  const [email, setEmail] = useState("");
+  const [companyId, setCompanyId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { backendUrl, setCompanyData, setCompanyToken } =
     useContext(AppContext);
-  const navigate = useNavigate(); // ✅ Added useNavigate
+  const navigate = useNavigate();
 
   const recruiterLogin = async (e) => {
     e.preventDefault();
-    setLoading(true); // ✅ Fixed loading state
+    setLoading(true);
 
     try {
-      const { data } = await axios.post(`${backendUrl}/company/login-company`, {
-        email,
+      const { data } = await axios.post(`${backendUrl}/company/login`, {
+        company_id: companyId,
         password,
       });
 
-      if (data.success) {
-        setCompanyToken(data.token);
-        setCompanyData(data.companyData);
-        localStorage.setItem("companyToken", data.token);
-        toast.success(data.message);
-        navigate("/dashboard");
+      console.log("Company login response:", data); // Debug log
+
+      if (data.access_token) {
+        // Store token and company data
+        localStorage.setItem("companyToken", data.access_token);
+        localStorage.setItem("companyData", JSON.stringify({
+          company_id: data.user_id,
+          user_type: data.user_type
+        }));
+        
+        // Update context
+        setCompanyToken(data.access_token);
+        setCompanyData({
+          company_id: data.user_id,
+          user_type: data.user_type
+        });
+        
+        console.log("Company login successful, navigating to dashboard...");
+        toast.success("Login successful!");
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 100);
       } else {
-        toast.error(data.message);
+        toast.error("Login failed - no access token received");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Login failed");
+      console.error("Company login error:", error); // Debug log
+      toast.error(error?.response?.data?.detail || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -61,11 +80,11 @@ const RecruiterLogin = () => {
               <div className="border border-gray-300 rounded flex items-center p-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
                 <Mail className="h-5 w-5 text-gray-400 mr-2" />
                 <input
-                  type="email"
-                  placeholder="Email id"
+                  type="text"
+                  placeholder="Company ID"
                   className="w-full outline-none text-sm"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
                   required
                 />
               </div>

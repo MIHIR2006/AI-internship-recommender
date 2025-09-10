@@ -1,15 +1,16 @@
 import axios from "axios";
-import { Lock, Mail, Upload, UserRound, LoaderCircle } from "lucide-react";
+import { LoaderCircle, Lock, Mail, Upload, UserRound } from "lucide-react";
 import React, { useContext, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { AppContext } from "../context/AppContext";
-import toast from "react-hot-toast";
 
 const RecruiterSignup = () => {
   const [companyLogo, setCompanyLogo] = useState(null);
-  const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyId, setCompanyId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,30 +24,29 @@ const RecruiterSignup = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("email", email);
-      formData.append("password", password);
-      formData.append("image", companyLogo);
+      const { data } = await axios.post(`${backendUrl}/company/signup`, {
+        company_name: companyName,
+        company_id: companyId,
+        email,
+        password,
+      });
 
-      const { data } = await axios.post(
-        `${backendUrl}/company/register-company`,
-        formData
-      );
-
-      if (data.success) {
-        setCompanyToken(data.token);
-        setCompanyData(data.companyData);
-        localStorage.setItem("companyToken", data.token);
-        toast.success(data.message);
-        navigate("/dashboard");
+      if (data.company_id) {
+        // Store company data in localStorage for now
+        const companyData = {
+          company_id: data.company_id,
+          email: data.email,
+          company_name: data.company_name
+        };
+        localStorage.setItem("companyData", JSON.stringify(companyData));
+        setCompanyData(companyData);
+        toast.success("Account created successfully! Please login.");
+        navigate("/recruiter-login");
       } else {
-        toast.error(data.message);
+        toast.error("Signup failed");
       }
-
-      console.log("Signup successful:", data);
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Signup failed.");
+      toast.error(error?.response?.data?.detail || "Signup failed.");
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,20 @@ const RecruiterSignup = () => {
                     type="text"
                     placeholder="Company name"
                     className="w-full outline-none text-sm bg-transparent"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="border border-gray-300 rounded flex items-center p-2.5">
+                  <Mail className="h-5 w-5 text-gray-400 mr-2" />
+                  <input
+                    type="text"
+                    placeholder="Company ID"
+                    className="w-full outline-none text-sm bg-transparent"
+                    value={companyId}
+                    onChange={(e) => setCompanyId(e.target.value)}
                     required
                   />
                 </div>

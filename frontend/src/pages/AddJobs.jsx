@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { LoaderCircle } from "lucide-react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-import { AppContext } from "../context/AppContext";
-import axios from "axios";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { LoaderCircle } from "lucide-react";
+import { AppContext } from "../context/AppContext";
 
 const AddJob = () => {
   const editorRef = useRef(null);
@@ -12,10 +12,10 @@ const AddJob = () => {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Programming");
+  const [skillsRequired, setSkillsRequired] = useState("");
   const [location, setLocation] = useState("Dhaka");
-  const [level, setLevel] = useState("Intermediate");
-  const [salary, setSalary] = useState(null);
+  const [stipend, setStipend] = useState("");
+  const [duration, setDuration] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { backendUrl, companyToken } = useContext(AppContext);
@@ -26,37 +26,37 @@ const AddJob = () => {
 
     try {
       const { data } = await axios.post(
-        `${backendUrl}/company/post-job`,
+        `${backendUrl}/company/add_internship/`,
         {
           title,
           description,
-          category,
+          skills_required: skillsRequired,
           location,
-          level,
-          salary,
+          stipend,
+          duration,
         },
         {
-          headers: { token: companyToken },
+          headers: { Authorization: `Bearer ${companyToken}` },
         }
       );
 
-      if (data.success) {
+      if (data.message) {
         toast.success(data.message);
         setTitle("");
         setDescription("");
-        setCategory("Programming");
+        setSkillsRequired("");
         setLocation("Dhaka");
-        setLevel("Intermediate");
-        setSalary(null);
+        setStipend("");
+        setDuration("");
 
         if (quillRef.current) {
           quillRef.current.root.innerHTML = "";
         }
       } else {
-        toast.error(data.message);
+        toast.error("Failed to add internship");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Something went wrong.");
+      toast.error(error?.response?.data?.detail || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -114,32 +114,27 @@ const AddJob = () => {
           />
         </div>
 
-        {/* Form Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Job Category */}
-          <div>
-            <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
-              Job Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="Programming">Programming</option>
-              <option value="Data Science">Data Science</option>
-              <option value="Designing">Designing</option>
-              <option value="Networking">Networking</option>
-              <option value="Management">Management</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Cybersecurity">Cybersecurity</option>
-            </select>
-          </div>
+        {/* Skills Required */}
+        <div className="mb-6">
+          <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
+            Skills Required
+          </label>
+          <input
+            type="text"
+            placeholder="Enter required skills (comma separated)"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={skillsRequired}
+            onChange={(e) => setSkillsRequired(e.target.value)}
+            required
+          />
+        </div>
 
+        {/* Form Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Job Location */}
           <div>
             <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
-              Job Location
+              Location
             </label>
             <select
               value={location}
@@ -157,33 +152,32 @@ const AddJob = () => {
             </select>
           </div>
 
-          {/* Job Level */}
+          {/* Stipend */}
           <div>
             <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
-              Job Level
-            </label>
-            <select
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="Beginner">Beginner</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Senior">Senior</option>
-            </select>
-          </div>
-
-          {/* Salary */}
-          <div>
-            <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
-              Salary
+              Stipend
             </label>
             <input
-              type="number"
-              placeholder="Enter salary range"
+              type="text"
+              placeholder="Enter stipend amount"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={salary}
-              onChange={(e) => setSalary(e.target.value)}
+              value={stipend}
+              onChange={(e) => setStipend(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="block text-gray-800 text-lg font-semibold mb-3 pb-1 border-b border-gray-200">
+              Duration
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., 3 months, 6 months"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
               required
             />
           </div>

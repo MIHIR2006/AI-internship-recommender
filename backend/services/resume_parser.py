@@ -12,8 +12,22 @@ from langchain.schema import HumanMessage
 from google.api_core.exceptions import ResourceExhausted
 import re
 
-# Use lighter model to avoid free-tier quota issues
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+# Initialize LLM lazily to avoid import-time errors
+llm = None
+
+def get_llm():
+    global llm
+    if llm is None:
+        try:
+            llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        except Exception as e:
+            print(f"Warning: Could not initialize Google Generative AI: {e}")
+            # Return a mock LLM that returns a basic response
+            class MockLLM:
+                def invoke(self, messages):
+                    return type('Response', (), {'content': 'Mock response - AI service unavailable'})()
+            llm = MockLLM()
+    return llm
 
 def extract_resume_summary(cv_text: str) -> dict:
     """
@@ -33,7 +47,8 @@ def extract_resume_summary(cv_text: str) -> dict:
     {truncated}
     """
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
+        llm_instance = get_llm()
+        response = llm_instance.invoke([HumanMessage(content=prompt)])
         return {"summary": response.content}
     except ResourceExhausted:
         # Fallback: return a naive summary slice to keep flow working

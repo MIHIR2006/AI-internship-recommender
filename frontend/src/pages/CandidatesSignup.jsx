@@ -10,6 +10,7 @@ import { AppContext } from "../context/AppContext";
 const CandidatesSignup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -32,29 +33,29 @@ const CandidatesSignup = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("email", email);
-      formData.append("password", password);
-      formData.append("image", image);
+      const { data } = await axios.post(`${backendUrl}/student/signup`, {
+        name,
+        email,
+        student_id: studentId,
+        password,
+      });
 
-      const { data } = await axios.post(
-        `${backendUrl}/user/register-user`,
-        formData
-      );
-
-      if (data.success) {
-        setUserToken(data.token);
-        setUserData(data.userData);
-        setIsLogin(true);
-        toast.success(data.message);
-        navigate("/");
-        localStorage.setItem("userToken", data.token);
+      if (data.student_id) {
+        // Store user data in localStorage for now
+        const userData = {
+          student_id: data.student_id,
+          email: data.email,
+          name: data.name
+        };
+        localStorage.setItem("userData", JSON.stringify(userData));
+        setUserData(userData);
+        toast.success("Account created successfully! Please login.");
+        navigate("/candidate-login");
       } else {
-        toast.error(data.message);
+        toast.error("Signup failed");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message);
+      toast.error(error?.response?.data?.detail || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -111,6 +112,19 @@ const CandidatesSignup = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     autoComplete="name"
+                    required
+                  />
+                </div>
+
+                <div className="border border-gray-300 rounded flex items-center p-2.5">
+                  <Mail className="h-5 w-5 text-gray-400 mr-2" />
+                  <input
+                    type="text"
+                    placeholder="Student ID"
+                    className="w-full outline-none text-sm bg-transparent placeholder-gray-400"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    autoComplete="username"
                     required
                   />
                 </div>

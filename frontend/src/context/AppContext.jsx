@@ -5,7 +5,7 @@ import { toast } from "react-hot-toast";
 export const AppContext = createContext();
 
 export const AppContextProvider = ({ children }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
   const [searchFilter, setSearchFilter] = useState({ title: "", location: "" });
   const [isSearched, setIsSearched] = useState(false);
@@ -16,6 +16,15 @@ export const AppContextProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [userDataLoading, setUserDataLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(!!userToken);
+
+  // Initialize user data from localStorage on mount
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("userData");
+    if (storedUserData && userToken) {
+      setUserData(JSON.parse(storedUserData));
+      console.log("Loaded user data from localStorage:", JSON.parse(storedUserData));
+    }
+  }, []);
   const [userApplication, setUserApplication] = useState(null);
   const [applicationsLoading, setApplicationsLoading] = useState(false);
 
@@ -25,6 +34,15 @@ export const AppContextProvider = ({ children }) => {
   const [companyData, setCompanyData] = useState(null);
   const [isCompanyLogin, setIsCompanyLogin] = useState(!!companyToken);
   const [companyLoading, setIsCompanyLoading] = useState(false);
+
+  // Initialize company data from localStorage on mount
+  useEffect(() => {
+    const storedCompanyData = localStorage.getItem("companyData");
+    if (storedCompanyData && companyToken) {
+      setCompanyData(JSON.parse(storedCompanyData));
+      console.log("Loaded company data from localStorage:", JSON.parse(storedCompanyData));
+    }
+  }, []);
 
   useEffect(() => {
     if (userToken) {
@@ -46,17 +64,18 @@ export const AppContextProvider = ({ children }) => {
     if (!userToken) return;
     setUserDataLoading(true);
     try {
-      const { data } = await axios.get(`${backendUrl}/user/user-data`, {
-        headers: { token: userToken },
+      const { data } = await axios.get(`${backendUrl}/student/user-info`, {
+        headers: { Authorization: `Bearer ${userToken}` },
       });
-      if (data.success) {
-        setUserData(data.userData);
-      } else {
-        toast.error(data.message);
+      if (data) {
+        setUserData({
+          student_id: data.student_id,
+          message: data.message
+        });
       }
     } catch (error) {
       toast.error(
-        error?.response?.data?.message || "Failed to fetch user data."
+        error?.response?.data?.detail || "Failed to fetch user data."
       );
     } finally {
       setUserDataLoading(false);
@@ -67,17 +86,14 @@ export const AppContextProvider = ({ children }) => {
     if (!companyToken) return;
     setIsCompanyLoading(true);
     try {
-      const { data } = await axios.get(`${backendUrl}/company/company-data`, {
-        headers: { token: companyToken },
-      });
-      if (data.success) {
-        setCompanyData(data.companyData);
-      } else {
-        toast.error(data.message);
+      // For now, we'll store company data in localStorage since FastAPI doesn't have a company data endpoint yet
+      const storedCompanyData = localStorage.getItem("companyData");
+      if (storedCompanyData) {
+        setCompanyData(JSON.parse(storedCompanyData));
       }
     } catch (error) {
       toast.error(
-        error?.response?.data?.message || "Failed to fetch company data."
+        error?.response?.data?.detail || "Failed to fetch company data."
       );
     } finally {
       setIsCompanyLoading(false);
@@ -87,14 +103,14 @@ export const AppContextProvider = ({ children }) => {
   const fetchJobsData = async () => {
     setJobLoading(true);
     try {
-      const { data } = await axios.get(`${backendUrl}/job/all-jobs`);
-      if (data.success) {
-        setJobs(data.jobData);
+      const { data } = await axios.get(`${backendUrl}/company/internships`);
+      if (data.internships) {
+        setJobs(data.internships);
       } else {
-        toast.error(data.message);
+        toast.error("Failed to fetch internships");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to fetch jobs.");
+      toast.error(error?.response?.data?.detail || "Failed to fetch internships.");
     } finally {
       setJobLoading(false);
     }
@@ -103,24 +119,13 @@ export const AppContextProvider = ({ children }) => {
   const fetchUserApplication = async () => {
     try {
       setApplicationsLoading(true);
-
-      const { data } = await axios.post(
-        `${backendUrl}/user/get-user-applications`,
-        {},
-        {
-          headers: {
-            token: userToken,
-          },
-        }
-      );
-
-      if (data.success) {
-        setUserApplication(data.jobApplications);
-      } else {
-        toast.error(data.message);
+      // For now, we'll store applications in localStorage since FastAPI doesn't have this endpoint yet
+      const storedApplications = localStorage.getItem("userApplications");
+      if (storedApplications) {
+        setUserApplication(JSON.parse(storedApplications));
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message);
+      toast.error(error?.response?.data?.detail || "Failed to fetch applications");
     } finally {
       setApplicationsLoading(false);
     }
@@ -139,7 +144,13 @@ export const AppContextProvider = ({ children }) => {
   useEffect(() => {
     if (userToken) {
       setIsLogin(true);
-      fetchUserData();
+      // Load user data from localStorage first
+      const storedUserData = localStorage.getItem("userData");
+      if (storedUserData) {
+        setUserData(JSON.parse(storedUserData));
+      }
+      // Optionally fetch additional data from server
+      // fetchUserData();
     } else {
       setUserData(null);
       setIsLogin(false);
@@ -149,7 +160,13 @@ export const AppContextProvider = ({ children }) => {
   useEffect(() => {
     if (companyToken) {
       setIsCompanyLogin(true);
-      fetchCompanyData();
+      // Load company data from localStorage first
+      const storedCompanyData = localStorage.getItem("companyData");
+      if (storedCompanyData) {
+        setCompanyData(JSON.parse(storedCompanyData));
+      }
+      // Optionally fetch additional data from server
+      // fetchCompanyData();
     } else {
       setCompanyData(null);
       setIsCompanyLogin(false);

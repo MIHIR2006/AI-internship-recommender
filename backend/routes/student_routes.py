@@ -6,7 +6,7 @@ from db.schemas import UserSignup, UserLogin, UserResponse, Token
 from services.resume_parser import extract_text_from_pdf, extract_resume_summary, make_concise_summary
 from db.vectorstore import build_or_update_student_vectorstore
 from utils.config import get_embeddings_with_fallback
-from utils.auth import create_access_token, verify_token
+from utils.auth import create_access_token, verify_token, get_current_user
 from services.recommendation import get_internship_recommendations_by_vector
 from services.recommendation import (
     get_internship_recommendations,
@@ -87,10 +87,18 @@ def _hydrate_session_from_db_if_missing(request: Request, db: Session, student_i
             request.session["chat_query_embeddings"] = []
 
 
+@router.get("/user-info")
+async def get_user_info(current_user: str = Depends(get_current_user)):
+    """Get basic user information."""
+    return {
+        "student_id": current_user,
+        "message": "User authenticated successfully"
+    }
+
 @router.get("/session-status")
-async def check_session(request: Request):
+async def check_session(request: Request, current_user: str = Depends(get_current_user)):
     """Check what's stored in the current session."""
-    student_id = request.session.get("student_id")
+    student_id = current_user
     # Try hydrating from DB if missing
     try:
         db: Session = next(get_db())
@@ -113,81 +121,134 @@ async def check_session(request: Request):
 async def analyze_resume(
     request: Request,
     file: UploadFile,
-    db: Session = Depends(get_db)   # ✅ Inject DB session
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
-    student_id = request.session.get("student_id")
-    if not student_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Not logged in: student_id missing in session"
-        )
+    try:
+        print(f"Starting resume analysis for student: {current_user}")
+        student_id = current_user
+        if not student_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Not logged in: invalid token"
+            )
 
-    # Save file locally
-    file_path = f"{file.filename}"
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-
-    # Extract text from PDF
-    cv_text = extract_text_from_pdf(file_path)
-
-    # ✅ Check if summary and embedding already exist in DB
-    stored_data = crud.get_resume_summary_with_embedding(db, student_id)
-    if stored_data and stored_data.get_embedding():
-        # Use cached data - no API calls needed!
-        # Make sure we keep a concise version for chat context
-        concise = make_concise_summary(stored_data.summary_text, max_chars=800)
-        resume_summary = {"summary": concise}
-        resume_embedding = stored_data.get_embedding()
-        print(f"✅ Using cached resume data for student {student_id}")
-    else:
-        # Extract new summary from Gemini (only if not cached)
-        resume_summary = extract_resume_summary(cv_text)
-        # Compress to concise form before storing/using
-        resume_summary["summary"] = make_concise_summary(resume_summary["summary"], max_chars=800)
+        # Save file locally in a temp directory
+        import os
+        import tempfile
+    
+        # Create temp directory if it doesn't exist
+        temp_dir = "temp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
         
-        # Compute embedding (only if not cached) with fallback
+        # Generate unique filename
+        file_extension = os.path.splitext(file.filename)[1] if file.filename else ".pdf"
+        file_path = os.path.join(temp_dir, f"{student_id}_{file.filename or 'resume'}{file_extension}")
+        
         try:
-            embeddings_model, embedding_type = get_embeddings_with_fallback()
-            resume_embedding = embeddings_model.embed_query(resume_summary["summary"])
-            print(f"✅ Generated new embedding for student {student_id} using {embedding_type}")
+            with open(file_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+            print(f"File saved to: {file_path}")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Embedding generation failed: {e}")
-        
-        # Save to database for future use
-        crud.save_resume_summary_with_embedding(db, student_id, resume_summary["summary"], resume_embedding)
-        print(f"✅ Saved resume data to database for student {student_id}")
+            print(f"Error saving file: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
-    # ✅ Get recommendations by vector (no additional embedding calls)
-    recs = get_internship_recommendations_by_vector(resume_embedding)
-    # ✅ Add match % and skill gaps for top 3
-    recs = augment_recommendations_with_scoring(resume_summary["summary"], recs, top_n=3)
+        # Extract text from file (PDF or text)
+        try:
+            file_extension = os.path.splitext(file_path)[1].lower()
+            
+            if file_extension == '.pdf':
+                cv_text = extract_text_from_pdf(file_path)
+            elif file_extension in ['.txt', '.doc', '.docx']:
+                # For text files, read directly
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    cv_text = f.read()
+            else:
+                # Try to read as text file
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        cv_text = f.read()
+                except:
+                    raise HTTPException(status_code=400, detail="Unsupported file type. Please upload a PDF, TXT, DOC, or DOCX file.")
+            
+            if not cv_text or len(cv_text.strip()) < 10:
+                raise HTTPException(status_code=400, detail="Could not extract text from file. Please ensure the file contains readable text.")
+            print(f"Extracted text length: {len(cv_text)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error extracting text from file: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to extract text from file: {str(e)}")
 
-    # ✅ Store in session for chat use
-    request.session["resume_summary"] = resume_summary["summary"]
-    # Store a rounded embedding to keep session small
-    request.session["resume_embedding"] = [round(float(x), 4) for x in resume_embedding]
-    request.session["recommendations"] = recs
-    # Initialize chat embeddings list if not present
-    if "chat_query_embeddings" not in request.session:
-        request.session["chat_query_embeddings"] = []
+        # ✅ Check if summary and embedding already exist in DB
+        stored_data = crud.get_resume_summary_with_embedding(db, student_id)
+        if stored_data and stored_data.get_embedding():
+            # Use cached data - no API calls needed!
+            # Make sure we keep a concise version for chat context
+            concise = make_concise_summary(stored_data.summary_text, max_chars=800)
+            resume_summary = {"summary": concise}
+            resume_embedding = stored_data.get_embedding()
+            print(f"✅ Using cached resume data for student {student_id}")
+        else:
+            # Extract new summary from Gemini (only if not cached)
+            resume_summary = extract_resume_summary(cv_text)
+            # Compress to concise form before storing/using
+            resume_summary["summary"] = make_concise_summary(resume_summary["summary"], max_chars=800)
+            
+            # Compute embedding (only if not cached) with fallback
+            try:
+                embeddings_model, embedding_type = get_embeddings_with_fallback()
+                resume_embedding = embeddings_model.embed_query(resume_summary["summary"])
+                print(f"✅ Generated new embedding for student {student_id} using {embedding_type}")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Embedding generation failed: {e}")
+            
+            # Save to database for future use
+            try:
+                crud.save_resume_summary_with_embedding(db, student_id, resume_summary["summary"], resume_embedding)
+                print(f"✅ Saved resume data to database for student {student_id}")
+            except Exception as e:
+                print(f"Error saving to database: {e}")
+                raise HTTPException(status_code=500, detail=f"Failed to save resume data to database: {str(e)}")
 
-    # Debug: log what we're storing
-    print(f"Storing in session for student {student_id}:")
-    print(f"- resume_summary length: {len(resume_summary['summary'])}")
-    print(f"- recommendations count: {len(recs)}")
-    print(f"- session keys: {list(request.session.keys())}")
+        # ✅ Get recommendations by vector (no additional embedding calls)
+        recs = get_internship_recommendations_by_vector(resume_embedding)
+        # ✅ Add match % and skill gaps for top 3
+        recs = augment_recommendations_with_scoring(resume_summary["summary"], recs, top_n=3)
 
-    return {
-        "resume_summary": resume_summary,
-        "recommendations": recs,
-        "message": "Resume processed successfully. Use /chat to ask questions.",
-        "session_stored": True
-    }
+        # ✅ Store in session for chat use
+        request.session["student_id"] = student_id
+        request.session["resume_summary"] = resume_summary["summary"]
+        # Store a rounded embedding to keep session small
+        request.session["resume_embedding"] = [round(float(x), 4) for x in resume_embedding]
+        request.session["recommendations"] = recs
+        # Initialize chat embeddings list if not present
+        if "chat_query_embeddings" not in request.session:
+            request.session["chat_query_embeddings"] = []
+
+        # Debug: log what we're storing
+        print(f"Storing in session for student {student_id}:")
+        print(f"- resume_summary length: {len(resume_summary['summary'])}")
+        print(f"- recommendations count: {len(recs)}")
+        print(f"- session keys: {list(request.session.keys())}")
+
+        return {
+            "resume_summary": resume_summary,
+            "recommendations": recs,
+            "message": "Resume processed successfully. Use /chat to ask questions.",
+            "session_stored": True
+        }
+    except Exception as e:
+        print(f"Error in analyze_resume: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Resume processing failed: {str(e)}")
 
 
 @router.get("/recommendations_scored")
-async def recommendations_scored(request: Request):
-    student_id = request.session.get("student_id")
+async def recommendations_scored(request: Request, current_user: str = Depends(get_current_user)):
+    student_id = current_user
     if not student_id:
         raise HTTPException(status_code=401, detail="Not logged in")
     # Hydrate from DB if needed
@@ -209,9 +270,9 @@ async def recommendations_scored(request: Request):
 
 
 @router.post("/chat")
-async def chat_with_ai(request: Request, question: str):
+async def chat_with_ai(request: Request, question: str, current_user: str = Depends(get_current_user)):
     """Chat with AI using stored resume summary and recommendations."""
-    student_id = request.session.get("student_id")
+    student_id = current_user
     if not student_id:
         raise HTTPException(status_code=401, detail="Not logged in")
 

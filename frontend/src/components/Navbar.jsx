@@ -1,12 +1,10 @@
 import {
-  Briefcase,
-  ChevronDown,
-  LoaderCircle,
-  LogOut,
-  Menu,
-  Upload,
-  UserRound,
-  X,
+    Briefcase,
+    ChevronDown,
+    LoaderCircle,
+    LogOut,
+    Menu,
+    X
 } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -69,6 +67,9 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("userToken");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("companyToken");
+    localStorage.removeItem("companyData");
     toast.success("Logout successfully");
     navigate("/candidate-login");
     setIsLogin(false);
