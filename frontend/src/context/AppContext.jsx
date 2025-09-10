@@ -28,6 +28,10 @@ export const AppContextProvider = ({ children }) => {
   const [userApplication, setUserApplication] = useState(null);
   const [applicationsLoading, setApplicationsLoading] = useState(false);
 
+  // Welcome popup state
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+
   const [companyToken, setCompanyToken] = useState(
     localStorage.getItem("companyToken")
   );
@@ -141,6 +145,20 @@ export const AppContextProvider = ({ children }) => {
     fetchJobsData();
   }, []);
 
+  // Check if user has seen welcome popup
+  useEffect(() => {
+    const hasSeenPopup = localStorage.getItem("hasSeenWelcomePopup");
+    const savedUserInfo = localStorage.getItem("userInfo");
+    
+    if (!hasSeenPopup) {
+      setShowWelcomePopup(true);
+    }
+    
+    if (savedUserInfo) {
+      setUserInfo(JSON.parse(savedUserInfo));
+    }
+  }, []);
+
   useEffect(() => {
     if (userToken) {
       setIsLogin(true);
@@ -210,7 +228,13 @@ export const AppContextProvider = ({ children }) => {
     companyLoading,
     userApplication,
     applicationsLoading,
-    fetchUserApplication
+    fetchUserApplication,
+
+    // Welcome popup
+    showWelcomePopup,
+    setShowWelcomePopup,
+    userInfo,
+    setUserInfo
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
