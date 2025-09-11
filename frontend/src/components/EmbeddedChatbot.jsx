@@ -181,7 +181,9 @@ const EmbeddedChatbot = () => {
   }, [messages]);
 
   // Job Card Component
-  const JobCard = ({ job }) => (
+  const JobCard = ({ job }) => {
+    const normalizedId = job._id || job.id || job.job_id;
+    return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-md transition-all duration-200">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
@@ -205,8 +207,14 @@ const EmbeddedChatbot = () => {
           </span>
         </div>
       )}
+      {normalizedId && (
+        <button onClick={() => window.location.href = `/apply-job/${normalizedId}`}
+          className="mt-3 text-xs bg-blue-500 text-white px-3 py-1.5 rounded hover:bg-blue-600">
+          View & Apply
+        </button>
+      )}
     </div>
-  );
+  ); };
 
   return (
     <motion.div

@@ -129,6 +129,8 @@ def get_internship_recommendations(student_summary: str, top_k: int = 5):
                 internship = internship_map[job_id]
                 recs.append({
                     "job_id": internship.job_id,
+                    "id": str(internship.job_id),
+                    "_id": str(internship.job_id),
                     "title": internship.title,
                     "description": internship.description,
                     "skills": internship.skills_required,
@@ -180,6 +182,8 @@ def get_internship_recommendations_by_vector(query_embedding: list, top_k: int =
                 internship = internship_map[job_id]
                 recs.append({
                     "job_id": internship.job_id,
+                    "id": str(internship.job_id),
+                    "_id": str(internship.job_id),
                     "title": internship.title,
                     "description": internship.description,
                     "skills": internship.skills_required,

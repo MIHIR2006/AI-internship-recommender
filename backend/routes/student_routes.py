@@ -88,11 +88,21 @@ def _hydrate_session_from_db_if_missing(request: Request, db: Session, student_i
 
 
 @router.get("/user-info")
-async def get_user_info(current_user: str = Depends(get_current_user)):
-    """Get basic user information."""
+async def get_user_info(request: Request, current_user: str = Depends(get_current_user)):
+    """Get basic user information plus resume status (hydrated from session/DB)."""
+    # Try hydrating resume summary into session if missing
+    try:
+        db: Session = next(get_db())
+        _hydrate_session_from_db_if_missing(request, db, current_user)
+    except Exception:
+        pass
+
+    has_resume_summary = bool(request.session.get("resume_summary", ""))
+
     return {
         "student_id": current_user,
-        "message": "User authenticated successfully"
+        "message": "User authenticated successfully",
+        "has_resume_summary": has_resume_summary,
     }
 
 @router.get("/session-status")

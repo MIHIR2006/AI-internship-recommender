@@ -59,7 +59,7 @@ const ApplyJob = () => {
 
   useEffect(() => {
     if (jobs && id) {
-      const data = jobs.find((job) => job._id === id);
+      const data = jobs.find((job) => String(job._id || job.id || job.job_id) === String(id));
       setJobData(data);
     }
   }, [id, jobs]);
@@ -144,7 +144,7 @@ const ApplyJob = () => {
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
               } text-white font-medium py-2 px-6 rounded-md transition duration-200 shadow-sm `}
-              onClick={() => applyJob(jobData?._id)}
+              onClick={() => applyJob(jobData?._id || jobData?.id || jobData?.job_id)}
               disabled={alreadyApplied}
             >
               {alreadyApplied ? "Already Applied" : "Apply now"}

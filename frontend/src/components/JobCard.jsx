@@ -1,18 +1,22 @@
-import React from "react";
-import moment from "moment";
 import kConverter from "k-convert";
-import { assets } from "../assets/assets";
-import { MapPin, Clock, User } from "lucide-react";
+import { Clock, MapPin, User } from "lucide-react";
+import moment from "moment";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { assets } from "../assets/assets";
 
 const JobCard = ({ job }) => {
   const navigate = useNavigate();
 
+  const id = job._id || job.id || job.job_id || job.jobId || job?.jobId?._id;
   return (
     <div
-      key={job._id}
+      key={id}
       onClick={() => {
-        navigate(`/apply-job/${job._id}`);
+        if (id) {
+          navigate(`/apply-job/${id}`);
+          scrollTo(0, 0);
+        }
         scrollTo(0, 0);
       }}
       className="flex gap-4 rounded-lg border border-gray-200 p-5 hover:shadow transition cursor-pointer"

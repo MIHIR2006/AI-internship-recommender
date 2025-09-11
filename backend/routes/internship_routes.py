@@ -57,10 +57,23 @@ async def company_login(login_data: CompanyLogin, db: Session = Depends(get_db))
 
 @router.get("/internships")
 def get_all_internships():
-    """Get all available internships."""
-    from db.crud import get_all_internships
-    internships = get_all_internships()
-    return {"internships": internships}
+    """Get all available internships as JSON-serializable dicts."""
+    from db.crud import get_all_internships as _get_all
+    items = _get_all()
+    def serialize(i):
+        return {
+            "_id": str(i.job_id),
+            "id": str(i.job_id),
+            "job_id": i.job_id,
+            "title": i.title,
+            "description": i.description,
+            "skills_required": i.skills_required,
+            "skills": i.skills_required,
+            "location": i.location,
+            "stipend": i.stipend,
+            "duration": i.duration,
+        }
+    return {"internships": [serialize(i) for i in items]}
 
 @router.post("/add_internship/")
 def create_internship(internship: InternshipCreate):
