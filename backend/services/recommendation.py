@@ -47,15 +47,25 @@ def _invoke_with_fallback(messages):
     """Try Gemini first, then fallback to LLaMA if quota exceeded."""
     try:
         response = llm.invoke(messages)
-        return {"model": "gemini", "content": response.content}
+        content = response.content.strip()
+        # Check if response is empty or contains "unknown"
+        if not content or content.lower() in ["unknown", "i don't know", "i'm not sure"]:
+            logger.warning("⚠️ Gemini returned empty or unknown response, trying LLaMA")
+            response = fallback_llm.invoke(messages)
+            return {"model": "llama", "content": response.content}
+        return {"model": "gemini", "content": content}
     except ResourceExhausted as e:
         logger.warning(f"⚠️ Gemini quota exceeded, switching to LLaMA: {e}")
         response = fallback_llm.invoke(messages)
         return {"model": "llama", "content": response.content}
     except Exception as e:
         logger.error(f"⚠️ Unexpected error with Gemini, using LLaMA: {e}")
-        response = fallback_llm.invoke(messages)
-        return {"model": "llama", "content": response.content}
+        try:
+            response = fallback_llm.invoke(messages)
+            return {"model": "llama", "content": response.content}
+        except Exception as fallback_error:
+            logger.error(f"⚠️ Both models failed: {fallback_error}")
+            return {"model": "fallback", "content": "I apologize, but I'm having trouble processing your request right now. Please try again later or rephrase your question."}
 
 
 def get_llm_recommendation_reason(student_id: str, recommendations: list) -> str:
@@ -95,21 +105,49 @@ def get_llm_recommendation_reason(student_id: str, recommendations: list) -> str
 
 def get_internship_recommendations(student_summary: str, top_k: int = 5):
     """Get internship recommendations without saving to conversation history."""
+    from db.database import SessionLocal
+    from db.models import Internship
+    
     vectorstore = load_vectorstore()
     results = vectorstore.similarity_search(student_summary, k=top_k)
 
-    recs = [
-        {
-            "job_id": res.metadata.get("job_id"),
-            "internship": res.page_content
-        }
-        for res in results
-    ]
+    # Get job IDs from vectorstore results
+    job_ids = [res.metadata.get("job_id") for res in results if res.metadata.get("job_id")]
+    
+    # Fetch full internship details from database
+    db = SessionLocal()
+    try:
+        internships = db.query(Internship).filter(Internship.job_id.in_(job_ids)).all()
+        
+        # Create a mapping of job_id to internship data
+        internship_map = {internship.job_id: internship for internship in internships}
+        
+        recs = []
+        for res in results:
+            job_id = res.metadata.get("job_id")
+            if job_id and job_id in internship_map:
+                internship = internship_map[job_id]
+                recs.append({
+                    "job_id": internship.job_id,
+                    "title": internship.title,
+                    "description": internship.description,
+                    "skills": internship.skills_required,
+                    "location": internship.location,
+                    "stipend": internship.stipend,
+                    "duration": internship.duration,
+                    "internship": res.page_content  # Keep original for scoring
+                })
+    finally:
+        db.close()
+    
     return recs
 
 
 def get_internship_recommendations_by_vector(query_embedding: list, top_k: int = 5):
     """Get internship recommendations using a precomputed embedding vector."""
+    from db.database import SessionLocal
+    from db.models import Internship
+    
     vectorstore = load_vectorstore()
     
     try:
@@ -124,13 +162,35 @@ def get_internship_recommendations_by_vector(query_embedding: list, top_k: int =
         print("⚠️ Falling back to text-based search")
         return get_internship_recommendations("resume text placeholder", top_k)
 
-    recs = [
-        {
-            "job_id": res.metadata.get("job_id"),
-            "internship": res.page_content
-        }
-        for res in results
-    ]
+    # Get job IDs from vectorstore results
+    job_ids = [res.metadata.get("job_id") for res in results if res.metadata.get("job_id")]
+    
+    # Fetch full internship details from database
+    db = SessionLocal()
+    try:
+        internships = db.query(Internship).filter(Internship.job_id.in_(job_ids)).all()
+        
+        # Create a mapping of job_id to internship data
+        internship_map = {internship.job_id: internship for internship in internships}
+        
+        recs = []
+        for res in results:
+            job_id = res.metadata.get("job_id")
+            if job_id and job_id in internship_map:
+                internship = internship_map[job_id]
+                recs.append({
+                    "job_id": internship.job_id,
+                    "title": internship.title,
+                    "description": internship.description,
+                    "skills": internship.skills_required,
+                    "location": internship.location,
+                    "stipend": internship.stipend,
+                    "duration": internship.duration,
+                    "internship": res.page_content  # Keep original for scoring
+                })
+    finally:
+        db.close()
+    
     return recs
 
 
@@ -160,12 +220,36 @@ def average_embeddings(vectors: List[List[float]]) -> List[float]:
 
 def detect_intent(user_query: str) -> str:
     """Classify intent: 'recommend_internships', 'suggest_skills', or 'general'."""
+    query_lower = user_query.lower()
+    
+    # Direct keyword matching for better accuracy
+    internship_keywords = [
+        "internship", "intern", "job", "position", "role", "opportunity", "opportunities",
+        "find", "search", "looking", "apply", "application", "hiring", "recruit",
+        "company", "work", "experience", "career", "employment"
+    ]
+    
+    skill_keywords = [
+        "skill", "skills", "learn", "learning", "improve", "improvement", "develop", "development",
+        "study", "studying", "practice", "practicing", "master", "mastering", "expertise",
+        "knowledge", "ability", "abilities", "competency", "competencies", "training"
+    ]
+    
+    # Check for internship-related queries
+    if any(keyword in query_lower for keyword in internship_keywords):
+        return "recommend_internships"
+    
+    # Check for skill-related queries
+    if any(keyword in query_lower for keyword in skill_keywords):
+        return "suggest_skills"
+    
+    # Use LLM for more complex queries
     prompt = (
         "Classify the user's intent into one of: recommend_internships, suggest_skills, general.\n"
-        "- recommend_internships: asking for internships, matches, best roles, opportunities.\n"
-        "- suggest_skills: asking what skills to learn/pursue/improve.\n"
-        "- general: anything else.\n"
-        f"User: {user_query}\n"
+        "- recommend_internships: asking for internships, job opportunities, career advice, application help\n"
+        "- suggest_skills: asking what skills to learn/pursue/improve/develop\n"
+        "- general: anything else like greetings, general questions, clarifications\n"
+        f"User query: {user_query}\n"
         "Answer with only the label."
     )
     try:
@@ -269,7 +353,7 @@ def augment_recommendations_with_scoring(resume_summary: str, recs: List[Dict], 
             score = score_skill_match(resume_summary, internship_text)
             rec = {
                 **rec,
-                "percent_match": score.get("percent_match", 0),
+                "match_percentage": score.get("percent_match", 0),  # Changed to match frontend expectation
                 "matched_skills": score.get("matched_skills", []),
                 "skill_gap": score.get("missing_skills", []),
             }
@@ -289,30 +373,78 @@ def suggest_skills_to_pursue(user_query: str, resume_summary: str) -> str:
     resp = _invoke_with_fallback([HumanMessage(content=prompt)])
     return resp["content"]
 
-def answer_with_context(student_id: str, user_query: str, resume_summary: str = "", recommendations: list = None) -> str:
-    """Answer a user question with resume context and recommendations, no conversation history."""
+def answer_with_context(student_id: str, user_query: str, resume_summary: str = "", recommendations: list = None, conversation_context: dict = None) -> str:
+    """Answer a user question with resume context and recommendations, with improved context handling."""
     # Save user's question
     save_conversation_context(student_id, "user", user_query)
 
-    # Build context with resume and recommendations
+    # Build comprehensive context
     context_parts = []
     if resume_summary:
-        context_parts.append(f"Student Resume Summary: {resume_summary[:1000]}")  # Limit resume text
+        context_parts.append(f"Student Resume Summary: {resume_summary[:800]}")  # Limit resume text
     
     if recommendations:
-        rec_text = "\n".join([f"- {rec.get('internship', '')[:200]}" for rec in recommendations[:3]])  # Top 3, limited
-        context_parts.append(f"Recommended Internships:\n{rec_text}")
+        rec_details = []
+        for i, rec in enumerate(recommendations[:3], 1):
+            rec_details.append(f"{i}. {rec.get('title', 'N/A')} - {rec.get('location', 'N/A')} - {rec.get('stipend', 'N/A')} - Match: {rec.get('match_percentage', 0)}%")
+        context_parts.append(f"Recommended Internships:\n" + "\n".join(rec_details))
 
     context = "\n\n".join(context_parts)
     
-    # Single message with all context
-    messages = [
-        HumanMessage(content=f"{context}\n\nUser Question: {user_query}\n\nPlease provide a helpful answer based on the context above.")
-    ]
+    # Add conversation context if available
+    conversation_info = ""
+    if conversation_context:
+        stage = conversation_context.get("conversation_stage", "initial")
+        last_topic = conversation_context.get("last_topic", "")
+        
+        if stage == "discussing_internships":
+            conversation_info = "\nCONVERSATION CONTEXT: The student is currently discussing internship opportunities. They may want to know more about specific roles, how to apply, or what makes them a good fit."
+        elif stage == "discussing_skills":
+            conversation_info = "\nCONVERSATION CONTEXT: The student is focused on skill development. They want to know what skills to learn or improve to strengthen their profile."
+        elif stage == "discussing_applications":
+            conversation_info = "\nCONVERSATION CONTEXT: The student is asking about the application process. They need practical guidance on resumes, interviews, or application strategies."
+        elif stage == "discussing_career":
+            conversation_info = "\nCONVERSATION CONTEXT: The student is thinking about their career path and future goals. They want guidance on career direction and planning."
+    
+    # Enhanced prompt that provides proactive guidance
+    prompt = f"""You are an expert career advisor helping a student with their internship search and career development. 
+
+CONTEXT:
+{context}{conversation_info}
+
+STUDENT'S QUESTION: {user_query}
+
+INSTRUCTIONS:
+- Provide specific, actionable advice based on their resume and the recommended internships
+- If they ask about internships, reference the specific recommendations above and explain why they're a good fit
+- If they ask about skills, suggest specific skills based on their profile and the job requirements
+- If they ask about applications, provide step-by-step guidance tailored to their background
+- If they ask about career paths, suggest relevant options based on their background
+- Be encouraging and specific, not generic
+- Reference specific details from their resume and recommendations when relevant
+- If the question is vague, provide helpful suggestions based on their profile and current conversation context
+- Build on the conversation flow naturally
+
+RESPONSE:"""
+
+    messages = [HumanMessage(content=prompt)]
 
     response = _invoke_with_fallback(messages)
+    content = response["content"]
+
+    # Enhanced fallback that's more helpful
+    if not content or content.lower().strip() in ["unknown", "i don't know", "i'm not sure", ""]:
+        # Provide context-aware fallback based on the question type
+        if any(word in user_query.lower() for word in ["internship", "job", "position", "role"]):
+            content = f"Based on your profile, I can see you have strong skills in your field. I've found some great internship opportunities that match your background. Would you like me to explain why these specific roles are a good fit for you, or would you prefer guidance on how to apply?"
+        elif any(word in user_query.lower() for word in ["skill", "learn", "improve", "develop"]):
+            content = f"Looking at your resume and the recommended positions, I can suggest specific skills that would strengthen your profile. Would you like me to recommend skills to learn based on the job requirements, or are you interested in a particular area of development?"
+        elif any(word in user_query.lower() for word in ["apply", "application", "resume", "interview"]):
+            content = f"I'd be happy to help you with the application process! I can provide guidance on tailoring your resume for specific roles, preparing for interviews, or writing compelling cover letters. What aspect of the application process would you like to focus on?"
+        else:
+            content = f"I understand you're asking about '{user_query}'. Based on your profile, I can help you with:\n\n• Finding the right internship opportunities\n• Developing skills to strengthen your applications\n• Guidance on the application and interview process\n• Career path recommendations\n\nWhat would be most helpful for you right now?"
 
     # Save AI's answer
-    save_conversation_context(student_id, "ai", response["content"])
+    save_conversation_context(student_id, "ai", content)
 
-    return response["content"]
+    return content

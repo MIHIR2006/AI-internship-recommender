@@ -1,13 +1,14 @@
-import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import React, { useContext, useEffect, useState, useMemo } from "react";
+import axios from "axios";
+import { motion } from "framer-motion";
+import { ChevronLeft, ChevronRight, Filter, Star } from "lucide-react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { JobCategories, JobLocations } from "../assets/assets";
-import JobCard from "../components/JobCard";
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { AppContext } from "../context/AppContext";
+import JobCard from "../components/JobCard";
 import Loader from "../components/Loader";
-import { motion } from "framer-motion";
+import Navbar from "../components/Navbar";
+import { AppContext } from "../context/AppContext";
 import { slideRigth, SlideUp } from "../utils/Animation";
 
 function AllJobs() {
@@ -16,6 +17,8 @@ function AllJobs() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const {
     jobs,
@@ -24,6 +27,9 @@ function AllJobs() {
     setIsSearched,
     isSearched,
     fetchJobsData,
+    userToken,
+    isLogin,
+    backendUrl,
   } = useContext(AppContext);
 
   const { category } = useParams();
@@ -38,14 +44,35 @@ function AllJobs() {
     selectedLocations: [],
   });
 
+  // Function to fetch recommended jobs
+  const fetchRecommendedJobs = async () => {
+    if (!isLogin || !userToken) return;
+    
+    setRecommendationsLoading(true);
+    try {
+      const { data } = await axios.get(`${backendUrl}/student/recommendations_scored`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      if (data.recommendations) {
+        setRecommendedJobs(data.recommendations);
+      }
+    } catch (error) {
+      console.log("No recommendations available:", error?.response?.data?.detail);
+      setRecommendedJobs([]);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       await fetchJobsData();
+      await fetchRecommendedJobs();
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [isLogin, userToken]);
 
   useEffect(() => {
     if (!jobs?.length) return;
@@ -262,6 +289,48 @@ function AllJobs() {
 
           {/* Job Cards */}
           <div className="lg:w-3/4">
+            {/* Recommended Jobs Section */}
+            {isLogin && recommendedJobs.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="text-yellow-500" size={24} />
+                  <h2 className="text-2xl font-bold text-gray-800">Recommended Jobs</h2>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Jobs tailored to your profile and skills
+                </p>
+                {recommendationsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader />
+                  </div>
+                ) : (
+                  <motion.div
+                    variants={SlideUp(0.3)}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
+                  >
+                    {recommendedJobs.slice(0, 3).map((job, i) => (
+                      <div key={i} className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 relative">
+                        <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                          {job.match_percentage}% match
+                        </div>
+                        <h3 className="font-semibold text-gray-800 mb-2">{job.title}</h3>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{job.description}</p>
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <span>📍 {job.location}</span>
+                          <span>💰 {job.stipend}</span>
+                        </div>
+                        <div className="mt-2">
+                          <span className="text-xs text-blue-600 font-medium">Skills: {job.skills}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+            )}
+
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-700 capitalize mb-2">
                 {category === "all"

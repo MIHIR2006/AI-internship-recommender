@@ -32,7 +32,10 @@ def build_vectorstore():
     print("✅ Vector store built/updated")
 
 def load_vectorstore():
-    if not os.path.exists(VECTORSTORE_PATH):
+    # Check if the directory exists and contains the required FAISS index files
+    index_file = os.path.join(VECTORSTORE_PATH, "index.faiss")
+    if not os.path.exists(VECTORSTORE_PATH) or not os.path.exists(index_file):
+        print("FAISS index not found, building vectorstore...")
         build_vectorstore()
     return FAISS.load_local(VECTORSTORE_PATH, embeddings, allow_dangerous_deserialization=True)  # ✅ Load using FAISS
 
@@ -57,9 +60,15 @@ def build_or_update_student_vectorstore(student_id: str, resume_text: str):
 	chunks = splitter.split_documents([Document(page_content=resume_text, metadata={"student_id": str(student_id)})])
 
 	# If the student's index exists, load and append. Otherwise, create new
-	if os.path.exists(student_store_path):
-		vectorstore = FAISS.load_local(student_store_path, embeddings, allow_dangerous_deserialization=True)
-		vectorstore.add_documents(chunks)
+	index_file = os.path.join(student_store_path, "index.faiss")
+	if os.path.exists(student_store_path) and os.path.exists(index_file):
+		try:
+			vectorstore = FAISS.load_local(student_store_path, embeddings, allow_dangerous_deserialization=True)
+			vectorstore.add_documents(chunks)
+		except Exception as e:
+			print(f"⚠️ Error loading existing student vectorstore for {student_id}: {e}")
+			print("Creating new vectorstore...")
+			vectorstore = FAISS.from_documents(chunks, embeddings)
 	else:
 		vectorstore = FAISS.from_documents(chunks, embeddings)
 
@@ -71,7 +80,8 @@ def build_or_update_student_vectorstore(student_id: str, resume_text: str):
 def load_student_vectorstore(student_id: str):
 	"""Load the FAISS vectorstore for a specific student. Returns None if not found."""
 	student_store_path = os.path.join(STUDENT_VECTORSTORE_DIR, str(student_id))
-	if not os.path.exists(student_store_path):
+	index_file = os.path.join(student_store_path, "index.faiss")
+	if not os.path.exists(student_store_path) or not os.path.exists(index_file):
 		return None
 	return FAISS.load_local(student_store_path, embeddings, allow_dangerous_deserialization=True)
 

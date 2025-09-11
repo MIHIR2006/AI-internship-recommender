@@ -287,11 +287,19 @@ async def chat_with_ai(request: Request, question: str, current_user: str = Depe
     recommendations = request.session.get("recommendations", [])
     resume_embedding = request.session.get("resume_embedding")
     chat_query_embeddings = request.session.get("chat_query_embeddings", [])
+    
+    # Get conversation context (last few interactions for context, not full history)
+    conversation_context = request.session.get("conversation_context", {
+        "last_topic": "",
+        "last_intent": "",
+        "conversation_stage": "initial"  # initial, discussing_internships, discussing_skills, etc.
+    })
 
     # Debug: log session data
     print(f"Session data for student {student_id}:")
     print(f"- resume_summary: {bool(resume_summary)}")
     print(f"- recommendations: {len(recommendations) if recommendations else 0}")
+    print(f"- conversation_context: {conversation_context}")
 
     if not resume_summary:
         raise HTTPException(
@@ -302,6 +310,23 @@ async def chat_with_ai(request: Request, question: str, current_user: str = Depe
     try:
         # Determine intent
         intent = detect_intent(question)
+        
+        # Update conversation context
+        conversation_context["last_intent"] = intent
+        conversation_context["last_topic"] = question[:100]  # Store first 100 chars
+        
+        # Determine conversation stage based on intent and context
+        if intent == "recommend_internships":
+            conversation_context["conversation_stage"] = "discussing_internships"
+        elif intent == "suggest_skills":
+            conversation_context["conversation_stage"] = "discussing_skills"
+        elif any(word in question.lower() for word in ["apply", "application", "resume", "interview"]):
+            conversation_context["conversation_stage"] = "discussing_applications"
+        elif any(word in question.lower() for word in ["career", "path", "future", "goal"]):
+            conversation_context["conversation_stage"] = "discussing_career"
+        
+        # Store updated context
+        request.session["conversation_context"] = conversation_context
 
         if intent == "recommend_internships":
             # Embed current query
@@ -339,8 +364,8 @@ async def chat_with_ai(request: Request, question: str, current_user: str = Depe
                 "advice": advice
             }
 
-        # Default: general QA using available context
-        answer = answer_with_context(student_id, question, resume_summary, recommendations)
+        # Default: general QA using available context with conversation awareness
+        answer = answer_with_context(student_id, question, resume_summary, recommendations, conversation_context)
         return {
             "intent": intent,
             "question": question,
