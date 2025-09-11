@@ -357,7 +357,7 @@ function AllJobs() {
               className="space-y-4"
             >
               {paginatedJobs.length > 0 ? (
-                paginatedJobs.map((job, i) => <JobCard key={i} job={job} />)
+                paginatedJobs.map((job, i) => <JobCard key={(job._id||job.id||i)} job={job} />)
               ) : (
                 <div className="text-center bg-white p-6 border border-gray-200 rounded-md">
                   <h3 className="text-lg font-semibold text-gray-800 mb-1">

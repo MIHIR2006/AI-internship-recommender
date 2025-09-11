@@ -70,7 +70,8 @@ export const AppContextProvider = ({ children }) => {
       if (data) {
         setUserData({
           student_id: data.student_id,
-          message: data.message
+          message: data.message,
+          has_resume_summary: !!data.has_resume_summary
         });
       }
     } catch (error) {
