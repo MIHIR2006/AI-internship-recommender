@@ -2,17 +2,29 @@ services:
   - type: web
     name: ai-internship-recommender
     env: python
-    plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 8080
+    plan: starter
+    buildCommand: |
+      pip install -r backend/requirements.txt
+      python backend/init_database.py
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: DATABASE_URL
+        value: postgresql+psycopg2://internships_po72_user:lN5zrJTQkaXygUV0a4Nt5kg3NbLWueC4@dpg-d391sebe5dus73ahqqgg-a.oregon-postgres.render.com:5432/internships_po72
       - key: VECTORSTORE_DIR
         value: /var/data/vectorstores
       - key: STUDENT_VECTORSTORE_DIR
         value: /var/data/student_vectorstores
+      - key: RUN_DB_CREATE_ALL
+        value: "true"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://your-frontend-app.onrender.com,http://localhost:3000,http://localhost:5173
     disk:
       name: data
       mountPath: /var/data

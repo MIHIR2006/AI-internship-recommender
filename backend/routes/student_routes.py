@@ -19,8 +19,7 @@ from services.recommendation import (
     suggest_skills_to_pursue,
 )
 
-# Make sure tables exist
-Base.metadata.create_all(bind=engine)
+# Avoid creating tables during import; this is handled in app startup
 
 router = APIRouter()
 
