@@ -2,12 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 import os
+import os
 from db.database import Base, engine
 from db.models import Internship
 from routes import internship_routes, student_routes
 from utils.config import CORS_ORIGINS
 
-Base.metadata.create_all(bind=engine)
+if os.getenv("RUN_DB_CREATE_ALL", "true").lower() in {"1", "true", "yes"}:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AI Internship Recommender")
 
