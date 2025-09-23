@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, X, Sparkles, Loader2, MapPin, ExternalLink, Briefcase } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bot, Briefcase, ExternalLink, Loader2, MapPin, Send, Sparkles, User, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const InternshipChatbot = ({ 
@@ -230,11 +230,11 @@ const InternshipChatbot = ({
 
     // Salary and compensation queries
     if (message.includes('salary') || message.includes('pay') || message.includes('compensation') || message.includes('money')) {
-      const salaryInfo = internshipDatabase.map(i => ({ 
-        field: i.category, 
-        salary: i.salary, 
-        title: i.title 
-      }));
+      // const salaryInfo = internshipDatabase.map(i => ({ 
+      //   field: i.category, 
+      //   salary: i.salary, 
+      //   title: i.title 
+      // }));
       
       return {
         content: "Internship compensation varies by field, location, and company size. Here's what you can typically expect:\n\n**💰 Salary Ranges:**\n• Tech/Engineering: $22-30/hour\n• Data Science: $25-35/hour\n• Marketing: $15-25/hour\n• Design: $18-28/hour\n• Business: $20-28/hour\n\n**💡 Remember:**\n• Paid internships are becoming standard\n• Location significantly impacts pay\n• Large companies often pay more\n• Experience and skills affect rates\n\nWant to see specific internships with salary info?",

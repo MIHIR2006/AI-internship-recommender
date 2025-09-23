@@ -1,8 +1,8 @@
+import { motion } from "framer-motion";
 import React, { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { categoryIcon } from "../assets/assets";
-import { motion } from "framer-motion";
-import { SlideLeft, slideRigth } from "../utils/Animation";
+import { SlideLeft } from "../utils/Animation";
 
 const JobCategory = () => {
   const [activeIndex, setActiveIndex] = useState(null);

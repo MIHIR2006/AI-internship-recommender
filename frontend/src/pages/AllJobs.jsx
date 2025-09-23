@@ -9,7 +9,7 @@ import JobCard from "../components/JobCard";
 import Loader from "../components/Loader";
 import Navbar from "../components/Navbar";
 import { AppContext } from "../context/AppContext";
-import { slideRigth, SlideUp } from "../utils/Animation";
+import { SlideUp, slideRigth } from "../utils/Animation";
 
 function AllJobs() {
   const [jobData, setJobData] = useState([]);

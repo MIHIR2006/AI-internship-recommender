@@ -17,7 +17,7 @@ const CandidatesSignup = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { backendUrl, setUserData, setUserToken, setIsLogin } =
+  const { backendUrl, setUserData } =
     useContext(AppContext);
 
   useEffect(() => {

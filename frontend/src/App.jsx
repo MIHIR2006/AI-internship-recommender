@@ -1,24 +1,24 @@
-import React, { useContext } from "react";
+import React from "react";
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "./layout/AppLayout";
 import About from "./pages/About";
+import AddJobs from "./pages/AddJobs";
 import AllJobs from "./pages/AllJobs";
 import Applications from "./pages/Applications";
 import ApplyJob from "./pages/ApplyJob";
 import CandidatesLogin from "./pages/CandidatesLogin";
 import CandidatesSignup from "./pages/CandidatesSignup";
+import Dashborad from "./pages/Dashborad";
 import Home from "./pages/Home";
-import Terms from "./pages/Terms";
+import ManageJobs from "./pages/ManageJobs";
 import RecruiterLogin from "./pages/RecruiterLogin";
 import RecruiterSignup from "./pages/RecruiterSignup";
-import Dashborad from "./pages/Dashborad";
-import AddJobs from "./pages/AddJobs";
-import ManageJobs from "./pages/ManageJobs";
+import Terms from "./pages/Terms";
 import ViewApplications from "./pages/ViewApplications";
-import { AppContext } from "./context/AppContext";
+// import { AppContext } from "./context/AppContext";
 
 const App = () => {
-  const { companyToken } = useContext(AppContext);
+  // const { companyToken } = useContext(AppContext);
 
   return (
     <AppLayout>

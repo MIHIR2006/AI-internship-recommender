@@ -1,9 +1,8 @@
-import React from "react";
-import { assets } from "../assets/assets";
 import { CheckCheck } from "lucide-react";
+import React from "react";
 import CountUp from "react-countup";
-import { motion } from "framer-motion";
-import { SlideUp } from "../utils/Animation";
+import { assets } from "../assets/assets";
+// import { motion } from "framer-motion";
 
 const Counter = () => {
   return (
@@ -12,10 +11,7 @@ const Counter = () => {
       <div className="flex flex-col lg:flex-row justify-between items-stretch gap-8 mb-6">
         {/* Image Container */}
         <div className="lg:w-[50%] lg:h-[400px] w-full flex">
-          <motion.img
-            initial={{ opacity: 0, scale: 0.5 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ stiffness: 90, delay: 0.1 }}
+          <img
             src={assets.counter_image}
             alt="People working together"
             className="w-full h-full object-cover rounded-lg shadow-lg"
@@ -25,31 +21,16 @@ const Counter = () => {
         {/* Content Container */}
         <div className="w-full lg:w-[50%] flex flex-col justify-center">
           <div className="py-6 lg:py-0 lg:px-8">
-            <motion.h1
-              variants={SlideUp(0.5)}
-              initial="hidden"
-              whileInView="visible"
-              className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6"
-            >
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
               Millions of Jobs. Find the one that{" "}
               <span className="text-blue-600">suits you.</span>
-            </motion.h1>
-            <motion.p
-              variants={SlideUp(0.5)}
-              initial="hidden"
-              whileInView="visible"
-              className="text-lg text-gray-600 mb-8"
-            >
+            </h1>
+            <p className="text-lg text-gray-600 mb-8">
               Search all the open positions on the web. Get your own
               personalized salary estimate. Read reviews on over 600,000
               companies worldwide.
-            </motion.p>
-            <motion.ul
-              variants={SlideUp(0.5)}
-              initial="hidden"
-              whileInView="visible"
-              className="space-y-4 mb-8"
-            >
+            </p>
+            <ul className="space-y-4 mb-8">
               <li className="flex items-start gap-3">
                 <CheckCheck className="text-green-500 flex-shrink-0 mt-1" />
                 <span className="text-gray-700">
@@ -68,15 +49,10 @@ const Counter = () => {
                   But I must explain to you how all this
                 </span>
               </li>
-            </motion.ul>
-            <motion.button
-              variants={SlideUp(0.6)}
-              initial="hidden"
-              whileInView="visible"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors "
-            >
+            </ul>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors ">
               Get Started
-            </motion.button>
+            </button>
           </div>
         </div>
       </div>

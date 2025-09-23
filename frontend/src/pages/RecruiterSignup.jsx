@@ -15,7 +15,7 @@ const RecruiterSignup = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { backendUrl, setCompanyData, setCompanyToken } =
+  const { backendUrl, setCompanyData } =
     useContext(AppContext);
   const navigate = useNavigate();
 

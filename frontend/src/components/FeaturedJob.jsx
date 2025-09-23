@@ -1,10 +1,10 @@
-import React, { useContext } from "react";
-import { AppContext } from "../context/AppContext";
-import JobCard from "./JobCard";
-import { useNavigate } from "react-router-dom";
-import Loader from "./Loader";
 import { motion } from "framer-motion";
+import React, { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 import { SlideUp } from "../utils/Animation";
+import JobCard from "./JobCard";
+import Loader from "./Loader";
 
 const FeaturedJob = () => {
   const { jobs, jobLoading } = useContext(AppContext);

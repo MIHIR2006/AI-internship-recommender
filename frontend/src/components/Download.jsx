@@ -1,7 +1,6 @@
 import React from "react";
-import { assets } from "../assets/assets";
-import { motion } from "framer-motion";
-import { SlideUp } from "../utils/Animation";
+// import { assets } from "../assets/assets";
+// import { motion } from "framer-motion";
 
 const Download = () => {
   return (

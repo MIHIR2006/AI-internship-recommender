@@ -1,9 +1,8 @@
 import axios from "axios";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 import { Bot, Loader2, Send, User } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../context/AppContext";
-import { SlideUp } from "../utils/Animation";
 
 const EmbeddedChatbot = () => {
   const { backendUrl, userToken, userData } = useContext(AppContext);
@@ -22,63 +21,63 @@ const EmbeddedChatbot = () => {
   const chatContainerRef = useRef(null);
 
   // Mock job database
-  const jobDatabase = [
-    {
-      id: 1,
-      title: "Senior Software Engineer",
-      company: "TechFlow Inc.",
-      location: "San Francisco, CA",
-      skills: ["JavaScript", "React", "Node.js", "Python"],
-      type: "Full-time",
-      salary: "$120k - $150k",
-      description: "Lead development of cutting-edge web applications and mentor junior developers.",
-      category: "tech"
-    },
-    {
-      id: 2,
-      title: "Digital Marketing Manager",
-      company: "BrandBoost Agency",
-      location: "New York, NY",
-      skills: ["Social Media Marketing", "Google Analytics", "SEO", "Content Strategy"],
-      type: "Full-time",
-      salary: "$80k - $100k",
-      description: "Develop and execute comprehensive digital marketing strategies across multiple channels.",
-      category: "marketing"
-    },
-    {
-      id: 3,
-      title: "UX/UI Designer",
-      company: "DesignStudio Pro",
-      location: "Remote",
-      skills: ["Figma", "Adobe Creative Suite", "User Research", "Prototyping"],
-      type: "Full-time",
-      salary: "$90k - $120k",
-      description: "Create user-centered designs and conduct usability research for mobile and web applications.",
-      category: "design"
-    },
-    {
-      id: 4,
-      title: "Data Scientist",
-      company: "DataCorp Analytics",
-      location: "Seattle, WA",
-      skills: ["Python", "SQL", "Machine Learning", "Tableau", "Statistics"],
-      type: "Full-time",
-      salary: "$110k - $140k",
-      description: "Analyze large datasets and build predictive models for business insights.",
-      category: "data"
-    },
-    {
-      id: 5,
-      title: "Cybersecurity Analyst",
-      company: "SecureTech Solutions",
-      location: "Austin, TX",
-      skills: ["Security Analysis", "Network Security", "Incident Response", "Compliance"],
-      type: "Full-time",
-      salary: "$95k - $125k",
-      description: "Protect organizational data and systems from cyber threats and vulnerabilities.",
-      category: "cybersecurity"
-    }
-  ];
+  // const jobDatabase = [
+  //   {
+  //     id: 1,
+  //     title: "Senior Software Engineer",
+  //     company: "TechFlow Inc.",
+  //     location: "San Francisco, CA",
+  //     skills: ["JavaScript", "React", "Node.js", "Python"],
+  //     type: "Full-time",
+  //     salary: "$120k - $150k",
+  //     description: "Lead development of cutting-edge web applications and mentor junior developers.",
+  //     category: "tech"
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Digital Marketing Manager",
+  //     company: "BrandBoost Agency",
+  //     location: "New York, NY",
+  //     skills: ["Social Media Marketing", "Google Analytics", "SEO", "Content Strategy"],
+  //     type: "Full-time",
+  //     salary: "$80k - $100k",
+  //     description: "Develop and execute comprehensive digital marketing strategies across multiple channels.",
+  //     category: "marketing"
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "UX/UI Designer",
+  //     company: "DesignStudio Pro",
+  //     location: "Remote",
+  //     skills: ["Figma", "Adobe Creative Suite", "User Research", "Prototyping"],
+  //     type: "Full-time",
+  //     salary: "$90k - $120k",
+  //     description: "Create user-centered designs and conduct usability research for mobile and web applications.",
+  //     category: "design"
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "Data Scientist",
+  //     company: "DataCorp Analytics",
+  //     location: "Seattle, WA",
+  //     skills: ["Python", "SQL", "Machine Learning", "Tableau", "Statistics"],
+  //     type: "Full-time",
+  //     salary: "$110k - $140k",
+  //     description: "Analyze large datasets and build predictive models for business insights.",
+  //     category: "data"
+  //   },
+  //   {
+  //     id: 5,
+  //     title: "Cybersecurity Analyst",
+  //     company: "SecureTech Solutions",
+  //     location: "Austin, TX",
+  //     skills: ["Security Analysis", "Network Security", "Incident Response", "Compliance"],
+  //     type: "Full-time",
+  //     salary: "$95k - $125k",
+  //     description: "Protect organizational data and systems from cyber threats and vulnerabilities.",
+  //     category: "cybersecurity"
+  //   }
+  // ];
 
   // AI Response Generator using FastAPI
   const generateBotResponse = async (userMessage) => {
@@ -217,12 +216,7 @@ const EmbeddedChatbot = () => {
   ); };
 
   return (
-    <motion.div
-      className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
-      variants={SlideUp(0.6)}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Chat Header */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 flex items-center justify-between">
         <div className="flex items-center">
@@ -247,11 +241,8 @@ const EmbeddedChatbot = () => {
         style={{ scrollBehavior: 'smooth' }}
       >
         {messages.map((message) => (
-          <motion.div
+          <div
             key={message.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
             className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
@@ -284,16 +275,12 @@ const EmbeddedChatbot = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
 
         {/* Typing Indicator */}
         {isTyping && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
-          >
+          <div className="flex justify-start">
             <div className="flex items-start space-x-2">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-blue-200 text-blue-600 flex items-center justify-center">
                 <Bot size={16} />
@@ -309,7 +296,7 @@ const EmbeddedChatbot = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 
@@ -332,19 +319,17 @@ const EmbeddedChatbot = () => {
               {inputMessage.length}/500
             </div>
           </div>
-          <motion.button
+          <button
             onClick={() => handleSendMessage()}
             disabled={!inputMessage.trim() || isTyping}
             className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-3 rounded-full transition-all duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             {isTyping ? (
               <Loader2 size={18} className="animate-spin" />
             ) : (
               <Send size={18} />
             )}
-          </motion.button>
+          </button>
         </div>
         
         {/* Quick Actions */}
@@ -362,7 +347,7 @@ const EmbeddedChatbot = () => {
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

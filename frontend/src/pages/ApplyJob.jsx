@@ -22,8 +22,6 @@ const ApplyJob = () => {
   const {
     jobs,
     jobLoading,
-    backendUrl,
-    userToken,
     userData,
     userApplication = [],
   } = useContext(AppContext);
@@ -52,7 +50,7 @@ const ApplyJob = () => {
       
       toast.success("Application submitted successfully!");
       setAlreadyApplied(true);
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     }
   };

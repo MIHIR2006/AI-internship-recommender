@@ -17,7 +17,7 @@ const Navbar = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
   const mobileMenuRef = useRef(null);
-  const { isLogin, userData, userDataLoading, fetchUserData, setIsLogin } =
+  const { isLogin, userData, userDataLoading, setIsLogin } =
     useContext(AppContext);
   const location = useLocation();
 
