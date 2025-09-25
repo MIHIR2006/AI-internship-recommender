@@ -1,22 +1,37 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
-PyPDF2
-langchain
-langchain-google-genai
-langchain-community
-langchain-huggingface
-faiss-cpu
-tiktoken
-python-multipart
-huggingface-hub
-google-api-core
-python-dotenv
-passlib[bcrypt]
-python-jose[cryptography]
-transformers
-torch
-itsdangerous
-sentence-transformers
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Authentication & Security
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+itsdangerous==2.1.2
+
+# AI/ML Dependencies
+langchain==0.1.0
+langchain-google-genai==0.0.6
+langchain-community==0.0.10
+langchain-huggingface==0.0.1
+sentence-transformers==2.2.2
+transformers==4.36.2
+torch==2.1.2
+faiss-cpu==1.7.4
+tiktoken==0.5.2
+
+# API Integrations
+huggingface-hub==0.19.4
+google-api-core==2.11.1
+
+# Utilities
+python-dotenv==1.0.0
+PyPDF2==3.0.1
+
+# Production optimizations
+gunicorn==21.2.0
