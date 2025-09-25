@@ -8,9 +8,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=7860 \
     SPACE_ID=Al-internship-recommender
 
-# Run in production mode by default on Hugging Face Spaces
-ENV ENVIRONMENT=production
-
 WORKDIR /app
 
 # System dependencies optimized for Hugging Face Spaces

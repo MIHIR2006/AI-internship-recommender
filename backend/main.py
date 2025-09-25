@@ -35,10 +35,7 @@ app = FastAPI(
 )
 
 # Security middleware
-# Allow hosts from env, default to '*' to avoid accidental lockout if unset
-allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "*")
-allowed_hosts = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 # Compression middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
